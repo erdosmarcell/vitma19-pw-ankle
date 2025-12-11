@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 echo "Running data processing..."
-python 01_data_processing.py
+python src/01_data_processing.py
 #echo "Running model training..."
 #python 02_train.py
 #echo "Running evaluation..."

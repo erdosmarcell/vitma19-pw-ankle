@@ -5,3 +5,4 @@ matplotlib==3.8.4
 opencv-python-headless==4.9.0.80
 tqdm==4.66.4
 jupyterlab==4.2.1
+requests==2.31.0
