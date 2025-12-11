@@ -7,34 +7,34 @@ import pandas as pd
 import json
 
 def download_zip(url: str, output_path: str):
-    print(f"[*] ZIP letöltése innen:\n{url}\n")
+    print(f"ZIP letöltése innen:\n{url}\n")
     try:
         r = requests.get(url, allow_redirects=True)
         r.raise_for_status()
         with open(output_path, "wb") as f:
             f.write(r.content)
-        print("[+] Letöltés kész.")
+        print("Letöltés kész.")
     except Exception as e:
-        print("[!] Hiba történt a letöltés során:")
+        print("Hiba történt a letöltés során:")
         print(e)
         raise e
 
 
 def extract_zip(zip_path: str, extract_dir: str):
-    print(f"[*] Kicsomagolás ide: {extract_dir}")
+    print(f"Kicsomagolás ide: {extract_dir}")
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_dir)
-        print("[+] Kicsomagolás kész.")
+        print("Kicsomagolás kész.")
     except Exception as e:
-        print("[!] Hiba történt kicsomagolás közben:")
+        print("Hiba történt kicsomagolás közben:")
         print(e)
         raise e
 
 
 def ensure_clean_directory(path: str):
     if os.path.exists(path):
-        print(f"[*] Régi fájlok törlése '{path}' könyvtárban...")
+        print(f"Régi fájlok törlése '{path}' könyvtárban...")
         for filename in os.listdir(path):
             file_path = os.path.join(path, filename)
             try:
@@ -43,7 +43,7 @@ def ensure_clean_directory(path: str):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
             except Exception as e:
-                print(f"[!] Nem sikerült törölni {file_path}: {e}")
+                print(f"Nem sikerült törölni {file_path}: {e}")
     else:
         os.makedirs(path, exist_ok=True)
 
@@ -56,28 +56,54 @@ def process_json(json_path, base_dir):
     records = []
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    
+    parent_folder_name = os.path.basename(os.path.dirname(json_path))
+
     for item in data:
         try:
-            choices = item["annotations"][0]["result"][0]["value"]["choices"]
+            annotations = item.get("annotations", [])
+            if not annotations:
+                continue
+            result_list = annotations[0].get("result", [])
+            if not result_list:
+                continue
+
+            value = result_list[0].get("value", {})
+            choices = value.get("choices", [])
             if len(choices) != 1:
                 continue
-            label_raw = choices[0]
-            label = label_raw.split("_", 1)[1]  # "Pronacio", "Neutralis", "Szupinacio"
 
-            image_rel_path = item["file_upload"]
+            label_raw = choices[0]
+            label = label_raw.split("_", 1)[-1]  # "Pronacio", "Neutralis", "Szupinacio"
+
+            image_rel_path = item.get("file_upload") or item.get("data", {}).get("image", "")
+            if not image_rel_path:
+                continue
+
             image_rel_path = image_rel_path.replace("data/upload/1/", "").replace("data/upload/2/", "")
-            image_rel_path = "-".join(image_rel_path.split("-")[1:])
+            parts = image_rel_path.split("-", 1)
+            if len(parts) > 1:
+                image_rel_path = parts[1]
+            filename, ext = os.path.splitext(image_rel_path)
+            if filename.endswith("_" + parent_folder_name):
+                filename = filename[:-(len(parent_folder_name)+1)]
+                image_rel_path = filename + ext
 
             image_path = os.path.join(base_dir, image_rel_path)
             if os.path.exists(image_path):
                 records.append({"image_path": image_path, "label": label})
             else:
-                print(f"[!] Kép nem található: {image_path}")
+                print(f"Kép nem található: {image_path}")
         except Exception as e:
-            print(f"[!] Hiba JSON feldolgozáskor: {json_path} -> {e}")
+            print(f"Hiba JSON feldolgozáskor: {json_path} -> {e}")
     return records
-
 def prepare_dataset(root_dir, output_csv):
+    LABEL_MAP = {
+        "neutral": "Neutralis",
+        "pronation": "Pronacio",
+        "supination": "Szupinacio"
+    }
+
     all_records = []
     for student_dir in os.listdir(root_dir):
         student_path = os.path.join(root_dir, student_dir)
@@ -87,12 +113,16 @@ def prepare_dataset(root_dir, output_csv):
             if fname.endswith(".json"):
                 json_path = os.path.join(student_path, fname)
                 recs = process_json(json_path, student_path)
+                for r in recs:
+                    r["label"] = LABEL_MAP.get(r["label"].lower(), r["label"])
+                
                 all_records.extend(recs)
-    print(all_records)
+
     df = pd.DataFrame(all_records)
     df.to_csv(output_csv, index=False)
     print(f"Előkészített adatok mentve: {output_csv}")
     print(f"Összesen {len(df)} kép-címke pár készült.")
+
 
 def flatten_student_dirs(root_dir):
     for student_dir in os.listdir(root_dir):
@@ -109,7 +139,7 @@ def flatten_student_dirs(root_dir):
                 src_path = os.path.join(subfolder_path, fname)
                 dst_path = os.path.join(student_path, fname)
                 if os.path.exists(dst_path):
-                    print(f"[!] Figyelem, létezik már: {dst_path}")
+                    print(f"Figyelem, létezik már: {dst_path}")
                     dst_path = os.path.join(student_path, f"dup_{fname}")
                 shutil.move(src_path, dst_path)
             os.rmdir(subfolder_path)
