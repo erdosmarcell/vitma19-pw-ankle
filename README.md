@@ -1,5 +1,4 @@
-# Deep Learning Class (VITMMA19) Project Work template
-
+# Deep Learning Class (VITMMA19) Project Work
 ## Project Details
 
 ### Project Information
