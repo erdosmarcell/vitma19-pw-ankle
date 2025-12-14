@@ -13,10 +13,6 @@ In this project, I developed two different deep learning image models to classif
 The first model, a baseline named "TinyNet" (referencing its size), implements a simple, custom-designed convolutional neural network (CNN). The second model is based on ResNet18, utilizing a pre-trained network. For the ResNet model, the main network layers were frozen, and only the final fully connected output layer was mapped and trained for the specific three-class task.
 The models were trained using the Adam optimizer and the cross-entropy loss function. The results show that the ResNet model fundamentally performs better than the other regarding accuracy, though labeling uncertainties prevent the achievement of high validation scores. It is worth noting that due to resource constraints, training and testing were performed on a CPU. Data preprocessing was completed, and a grouping method was used on the consensus images to identify a suitable number of accurately labeled images due to mixed-error annotations.
 
-### Extra Credit Justification
-
-[If you selected "Yes" for Aiming for +1 Mark, describe here which specific part of your work (e.g., innovative model architecture, extensive experimentation, exceptional performance) you believe deserves an extra mark.]
-
 ### Docker Instructions
 
 This project is containerized using Docker. Follow the instructions below to build and run the solution.
