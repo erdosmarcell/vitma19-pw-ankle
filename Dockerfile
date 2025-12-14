@@ -15,12 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ src/
 COPY notebook/ notebook/
-
 COPY run.sh run.sh
-RUN dos2unix run.sh \
-    && find src -name "*.py" -exec dos2unix {} \; \
-    && chmod +x run.sh
 
-VOLUME ["/data"]
+RUN find /app -type f \( -name "*.py" -o -name "*.sh" -o -name "*.ipynb" \) -exec dos2unix {} \; \
+    && chmod +x /app/run.sh
+
+VOLUME ["/app/data"]
 
 CMD ["bash", "/app/run.sh"]
